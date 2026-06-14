@@ -1,0 +1,63 @@
+syntax = "proto3";
+package leochain.blt;
+
+import "amino/amino.proto";
+import "gogoproto/gogo.proto";
+import "google/api/annotations.proto";
+import "cosmos/base/query/v1beta1/pagination.proto";
+import "leochain/blt/params.proto";
+import "leochain/blt/types.proto";
+
+option go_package = "leochain/x/blt/types";
+
+// Query defines the gRPC querier service for x/blt.
+service Query {
+  // Params returns the module parameters.
+  rpc Params(QueryParamsRequest) returns (QueryParamsResponse) {
+    option (google.api.http).get = "/leochain/blt/params";
+  }
+
+  // LatestEpoch returns the most recently finalized BltEpochSnapshot.
+  rpc LatestEpoch(QueryLatestEpochRequest) returns (QueryLatestEpochResponse) {
+    option (google.api.http).get = "/leochain/blt/latest_epoch";
+  }
+
+  // EpochHistory returns a single past epoch snapshot by id.
+  rpc EpochHistory(QueryEpochHistoryRequest) returns (QueryEpochHistoryResponse) {
+    option (google.api.http).get = "/leochain/blt/epoch_history/{epoch_id}";
+  }
+
+  // DelegateSet returns the active 12 cluster-head delegates.
+  rpc DelegateSet(QueryDelegateSetRequest) returns (QueryDelegateSetResponse) {
+    option (google.api.http).get = "/leochain/blt/delegate_set";
+  }
+}
+
+message QueryParamsRequest {}
+
+message QueryParamsResponse {
+  Params params = 1 [
+    (gogoproto.nullable)   = false,
+    (amino.dont_omitempty) = true
+  ];
+}
+
+message QueryLatestEpochRequest {}
+
+message QueryLatestEpochResponse {
+  BltEpochSnapshot snapshot = 1 [(gogoproto.nullable) = false];
+}
+
+message QueryEpochHistoryRequest {
+  uint32 epoch_id = 1;
+}
+
+message QueryEpochHistoryResponse {
+  BltEpochSnapshot snapshot = 1 [(gogoproto.nullable) = false];
+}
+
+message QueryDelegateSetRequest {}
+
+message QueryDelegateSetResponse {
+  BltDelegateSet delegate_set = 1 [(gogoproto.nullable) = false];
+}

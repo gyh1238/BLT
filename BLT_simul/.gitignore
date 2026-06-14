@@ -1,0 +1,4 @@
+node_modules/
+__pycache__/
+.idea/
+result/sync_performance_big.csv

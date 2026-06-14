@@ -1,0 +1,17 @@
+syntax = "proto3";
+package leochain.blt;
+
+import "amino/amino.proto";
+import "gogoproto/gogo.proto";
+
+option go_package = "leochain/x/blt/types";
+
+// Params defines the parameters for the x/blt module.
+message Params {
+  option (amino.name)      = "leochain/x/blt/Params";
+  option (gogoproto.equal) = true;
+
+  uint32 cluster_count               = 1; // = 12 per spec §4.5
+  uint32 epoch_length_ms             = 2; // = 3500 per spec §2/§4.5
+  uint64 max_member_records_per_block = 3; // safety limit, e.g. 16384
+}

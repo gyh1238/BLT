@@ -1,0 +1,24 @@
+syntax = "proto3";
+package leochain.blt;
+
+import "amino/amino.proto";
+import "gogoproto/gogo.proto";
+import "leochain/blt/params.proto";
+import "leochain/blt/types.proto";
+
+option go_package = "leochain/x/blt/types";
+
+// GenesisState defines the blt module's genesis state per spec §4.5.
+message GenesisState {
+  // params defines all the parameters of the module.
+  Params params = 1 [
+    (gogoproto.nullable)  = false,
+    (amino.dont_omitempty) = true
+  ];
+
+  // initial_delegates maps to the 12 genesis cluster heads (validators).
+  BltDelegateSet initial_delegates = 2 [
+    (gogoproto.nullable)  = false,
+    (amino.dont_omitempty) = true
+  ];
+}

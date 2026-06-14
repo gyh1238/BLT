@@ -1,0 +1,48 @@
+version: 1
+validation: sovereign
+build:
+  proto:
+    path: proto
+    third_party_paths:
+      - third_party/proto
+      - proto_vendor
+accounts:
+  - name: alice
+    coins:
+      - 100000000leo
+  - name: bob
+    coins:
+      - 100000000leo
+client:
+  openapi:
+    path: docs/static/openapi.yml
+faucet:
+  name: bob
+  coins:
+    - 100000leo
+validators:
+  - name: alice
+    bonded: 100000000leo
+    config:
+      consensus:
+        timeout_commit: "3500ms"
+        timeout_propose: "1000ms"
+        timeout_prevote: "500ms"
+        timeout_precommit: "500ms"
+genesis:
+  chain_id: "leo_chain-1"
+  app_state:
+    staking:
+      params:
+        bond_denom: "leo"
+    crisis:
+      constant_fee:
+        denom: "leo"
+    mint:
+      params:
+        mint_denom: "leo"
+    gov:
+      params:
+        min_deposit:
+          - denom: "leo"
+            amount: "10000000"

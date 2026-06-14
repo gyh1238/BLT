@@ -1,0 +1,12 @@
+fileFormatVersion: 2
+guid: 8bcdb1476c0e42947ad4e3a82c02f92c
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - maggellanPrefab: {fileID: 1075246142126949075, guid: 7e68c3637b8362247b4fc6d3d6207d6a, type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

@@ -1,0 +1,66 @@
+syntax = "proto3";
+package leochain.blt;
+
+import "gogoproto/gogo.proto";
+
+option go_package = "leochain/x/blt/types";
+
+// BltBodyGlobal carries the global synchronization view that the block
+// proposer asserts for this epoch. All time fields are encoded in 0.1 ns
+// units (q01ns) per BLT-SAND spec.
+message BltBodyGlobal {
+  uint64 global_ref_time_q01ns = 1;       // u64, units of 0.1 ns
+  uint32 cluster_count         = 2;       // u8 semantic range
+  uint32 member_count          = 3;       // u16 semantic range
+}
+
+// BltClusterSummary is one row per cluster head, summarizing the
+// intra-cluster offset distribution and the head's offset to global ref.
+message BltClusterSummary {
+  uint32 cluster_id                    = 1; // u8
+  uint32 head_id                       = 2; // u16
+  sint32 head_offset_to_global_q01ns   = 3; // int32, 0.1 ns
+  uint32 member_count                  = 4; // u16
+  uint32 inlier_count                  = 5; // u16
+  sint32 member_offset_mean_q01ns      = 6; // int32, 0.1 ns
+  uint32 member_offset_var_q01ns2      = 7; // u32, (0.1 ns)^2
+}
+
+// BltMemberRecord is one row per member satellite (full record policy).
+message BltMemberRecord {
+  uint32 node_id              = 1; // u16
+  uint32 cluster_id           = 2; // u8
+  sint32 offset_to_head_q01ns = 3; // int16, 0.1 ns
+  uint32 resp_prob_q255       = 4; // u8, 0..255
+  uint32 time_acc_q01ns       = 5; // u16
+  uint32 flags                = 6; // u8 (participation/outlier/saturation)
+}
+
+// BltBlockBody bundles the global view, per-cluster summaries and the full
+// member table per spec §4.3 (full-record policy).
+message BltBlockBody {
+  BltBodyGlobal              global        = 1 [(gogoproto.nullable) = false];
+  repeated BltClusterSummary cluster_table = 2 [(gogoproto.nullable) = false];
+  repeated BltMemberRecord   member_table  = 3 [(gogoproto.nullable) = false];
+}
+
+// BltDelegate maps a cluster head (satellite) to a validator address.
+message BltDelegate {
+  uint32 cluster_id         = 1; // u8
+  uint32 head_id            = 2; // u16
+  string validator_address  = 3; // cosmosvaloper1...
+}
+
+// BltDelegateSet is the current round's 12 cluster heads.
+message BltDelegateSet {
+  repeated BltDelegate delegates = 1 [(gogoproto.nullable) = false];
+}
+
+// BltEpochSnapshot is the persisted finalized body for an epoch.
+message BltEpochSnapshot {
+  uint32       epoch_id              = 1;
+  int64        height                = 2;
+  string       proposer              = 3;
+  bytes        relay_path_hash       = 4;
+  BltBlockBody body                  = 5 [(gogoproto.nullable) = false];
+}

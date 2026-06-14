@@ -1,0 +1,73 @@
+# ── Secrets (NEVER commit) ─────────────────────────────
+SLTrack.ini
+*.ini
+!ProjectSettings/*.ini
+.env
+*.key
+*.pem
+
+# ── Paper PDF (not public yet) ─────────────────────────
+BLT_SAND.pdf
+*.pdf
+
+# ── Claude local settings ──────────────────────────────
+.claude/settings.local.json
+
+# ── Python (BLT_simul) ─────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# ── Node (BLT_simul) ───────────────────────────────────
+node_modules/
+
+# ── Simulation outputs / large data (BLT_simul) ────────
+# Code is tracked; regenerable CSV results are not.
+result/*.csv
+*.csv
+# regenerable rendered outputs / run logs (figures/ is tracked separately)
+**/result/*.png
+**/result/*.pdf
+**/result/*.txt
+
+# ── Third-party tool clones (BLT_bft_chain) ────────────
+tools/ignite-src/
+*.log
+
+# ── Unity generated/temp (BLT_dt) ──────────────────────
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+.vs/
+.idea/
+.gradle/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+# ── OS / editor cruft ──────────────────────────────────
+.DS_Store
+Thumbs.db
+ehthumbs.db
