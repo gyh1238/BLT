@@ -4,7 +4,7 @@
 
 ### Blockchain-Assisted Lightweight Time Synchronization for Satellite Network Decentralization
 
-*A blockchain-inspired, hierarchical-PBFT protocol that holds a large-scale LEO constellation to **sub-10-ns** network time over inter-satellite links — without continuous reliance on GNSS or ground control.*
+*A **lightweight blockchain** — each satellite is a node running hierarchical-PBFT (h-PBFT) consensus — that holds a large-scale LEO constellation to **sub-10-ns** network time over inter-satellite links, without continuous reliance on GNSS or ground control.*
 
 </div>
 
@@ -25,8 +25,10 @@ Free-space optical inter-satellite links (ISLs) require inter-satellite clock of
 guarantee this across a fast-moving LEO constellation: visibility is intermittent, ground contact is
 sparse, and onboard oscillators drift (~1 ns/s) independently between updates.
 
-**BLT-SAND** treats network time as a *shared, replicated state* maintained by a lightweight
-blockchain consensus, rather than a value handed down from a central reference. Its contributions:
+**BLT-SAND** maintains network time as a *shared, replicated state on an actual blockchain* — each
+satellite runs a blockchain node (Tendermint Core), keeps a local copy of the chain, and commits one
+block per synchronization round — rather than taking a value handed down from a central reference.
+Its contributions:
 
 1. **Hierarchical PBFT (h-PBFT).** Full-mesh PBFT (O(n²) messaging) is replaced by a two-tier design:
    satellites aggregate offsets *locally within clusters*, and only **cluster heads** run *global*
@@ -69,7 +71,8 @@ Cluster membership and heads are reselected as the topology evolves. Reference d
 
 ### 2.2 Blockchain framework and consensus
 
-Each round produces one block (`SHA-256` hash chain):
+Every satellite is a node holding a local copy of a `SHA-256` hash chain that begins at a shared
+genesis block. Each synchronization round appends exactly one block:
 
 - **Header** — round number, nonce, previous-block hash, body hash, proposer identity, signature.
   The `(round, nonce)` pair disambiguates competing proposals caused by delay/out-of-order delivery.
@@ -211,8 +214,8 @@ BLT-SAND supports many cluster/interval configurations while meeting ISL timing.
 ## 6. Digital twin
 
 `BLT_dt` is a Unity testbed that renders the constellation from live **Space-Track** TLEs (Earth
-rotation, day/night, orbits, K-Means clusters, faulty-node highlighting) and polls the consensus
-chain over RPC to display block height and synchronization state in real time. The FSO ISL model uses
+rotation, day/night, orbits, K-Means clusters, faulty-node highlighting) and polls the blockchain
+over RPC to display block height and synchronization state in real time. The FSO ISL model uses
 2.5 W transmit power, 1,550 nm wavelength, and 20 µrad beam divergence. Demo video:
 [youtu.be/kGDHFrKU2DY](https://youtu.be/kGDHFrKU2DY).
 
