@@ -61,7 +61,8 @@ Synchronization alternates two complementary phases:
   run h-PBFT to commit a single block, removing accumulated inter-cluster discrepancies.
 
 Cluster membership and heads are reselected as the topology evolves. Reference design point:
-**8,000 satellites / 12 clusters (~650 each)**, local cycle ≈ 5.2 s, global block interval ≈ 6 s.
+**8,192 satellites / 12 clusters (~683 each)**, local cycle ≈ 5.2 s, global block interval ≈ 6 s,
+block size ≈ 6.7 kB.
 
 <div align="center">
 <img src="figures/fig2.png" width="90%" alt="Fig. 2">
@@ -216,8 +217,10 @@ BLT-SAND supports many cluster/interval configurations while meeting ISL timing.
 `BLT_dt` is a Unity testbed that renders the constellation from live **Space-Track** TLEs (Earth
 rotation, day/night, orbits, K-Means clusters, faulty-node highlighting) and polls the blockchain
 over RPC to display block height and synchronization state in real time. The FSO ISL model uses
-2.5 W transmit power, 1,550 nm wavelength, and 20 µrad beam divergence. Demo video:
-[youtu.be/kGDHFrKU2DY](https://youtu.be/kGDHFrKU2DY).
+2.5 W transmit power, 1,550 nm wavelength, and 20 µrad beam divergence. The blockchain layer runs on
+**Tendermint Core** with each satellite as an independent node; blocks are committed every 6 s
+(≈ 6.7 kB), and a one-time hard fork bounds storage growth over the 5-year mission (128 GB onboard).
+Demo video: [youtu.be/kGDHFrKU2DY](https://youtu.be/kGDHFrKU2DY).
 
 > Credentials (e.g. Space-Track) and the chain RPC endpoint are **not** bundled — supply your own.
 > Inspector fields are blank and the RPC endpoint defaults to `http://localhost:26657`.
