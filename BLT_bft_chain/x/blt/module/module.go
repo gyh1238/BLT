@@ -150,9 +150,11 @@ func (am AppModule) BeginBlock(_ context.Context) error {
 }
 
 // EndBlock contains the logic that is automatically triggered at the end of each block.
-// The end block implementation is optional.
-func (am AppModule) EndBlock(_ context.Context) error {
-	return nil
+// On the self-driving demo path it synthesizes one BLT-SAND sync epoch per block
+// (deterministic in the block height) so the DT can read proposer/RMSE from chain.
+func (am AppModule) EndBlock(goCtx context.Context) error {
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	return am.keeper.GenerateEpoch(ctx)
 }
 
 // IsOnePerModuleType implements the depinject.OnePerModuleType interface.

@@ -10,4 +10,5 @@ const (
 	AttributeKeyProposer           = "proposer"
 	AttributeKeyClusterCount       = "cluster_count"
 	AttributeKeyMemberCount        = "member_count"
+	AttributeKeyNetworkRmseMilliNs = "network_rmse_milli_ns"
 )

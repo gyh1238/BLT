@@ -13,6 +13,7 @@ public class MonitorPanel : MonoBehaviour
 {
     [Header("References")]
     public MapManager mapManager;   // Used to query cluster member count
+    public BltChainPoller bltPoller; // x/blt chain data (RMSE, cluster count)
 
     [Header("RPC Settings")]
     public string rpcEndpoint  = "http://localhost:26657";
@@ -93,12 +94,20 @@ public class MonitorPanel : MonoBehaviour
             _lastHeight = h;
         }
 
-        // Minor RMSE fluctuation (temporary)
-        // Same formula as RmseGraphPanel
-        rmseNs = 8.8f
-            + Mathf.Sin(Time.time * 0.29f) * 0.30f
-            + Mathf.Sin(Time.time * 0.71f) * 0.14f
-            + Mathf.Sin(Time.time * 1.37f) * 0.06f;
+        // RMSE: read the chain-generated network RMSE when connected; otherwise
+        // fall back to the local fluctuation formula (shared with RmseGraphPanel).
+        if (bltPoller != null && bltPoller.Connected)
+        {
+            rmseNs = bltPoller.NetworkRmseNs;
+            if (bltPoller.ClusterCount > 0) activeClusters = bltPoller.ClusterCount;
+        }
+        else
+        {
+            rmseNs = 8.8f
+                + Mathf.Sin(Time.time * 0.29f) * 0.30f
+                + Mathf.Sin(Time.time * 0.71f) * 0.14f
+                + Mathf.Sin(Time.time * 1.37f) * 0.06f;
+        }
     }
 
     void UpdateUI()

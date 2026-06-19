@@ -84,7 +84,11 @@ public class RmseGraphPanel : MonoBehaviour
     {
         while (true)
         {
-            float rmse = RmseWave(Time.time);
+            // Prefer the real network RMSE (chain-driven via MonitorPanel); fall
+            // back to the synthetic wave only when no live value is available.
+            float rmse = (monitorPanel != null && monitorPanel.rmseNs > 0f)
+                ? monitorPanel.rmseNs
+                : RmseWave(Time.time);
             _buffer[_head] = rmse;
             _head = (_head + 1) % bufferSize;
             if (_count < bufferSize) _count++;

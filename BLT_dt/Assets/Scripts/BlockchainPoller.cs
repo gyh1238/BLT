@@ -26,6 +26,9 @@ public class BlockchainPoller : MonoBehaviour
     [Header("Satellite List (NORAD ID)")]
     public MapManager mapManager;  // MapManager reference
 
+    [Header("BLT chain data (proposer source)")]
+    public BltChainPoller bltPoller;  // x/blt epoch poller — real proposer SAT-ID
+
     // ── Public properties (referenced by MissionStatusBar) ──────
     public long   LatestHeight    => _lastHeight;
     public string ChainId         => _chainId;
@@ -140,11 +143,18 @@ public class BlockchainPoller : MonoBehaviour
                     out System.DateTime bt))
                     _latestBlockTime = bt.ToUniversalTime().ToString("HH:mm:ss");
             }
-            // Proposer — display the first 8 characters of block_id as the SAT ID
-            if (!string.IsNullOrEmpty(metas[0].header.proposer_address))
+            // Proposer source priority:
+            //   1) BLT chain (x/blt epoch) — the real chain-generated proposer
+            //   2) proposer_address hash    — when explicitly requested
+            //   3) block-height seed (DT)   — offline fallback
+            if (bltPoller != null && bltPoller.Connected)
+            {
+                _latestProposer = bltPoller.ProposerSat;
+                _nextProposer   = bltPoller.NextProposerSat;
+            }
+            else if (!string.IsNullOrEmpty(metas[0].header.proposer_address))
             {
                 string addr = metas[0].header.proposer_address;
-                // Convert to a seed in the same way as the existing blockchainPoller SAT generation
                 if (useBlockchainProposer)
                 {
                     // [Blockchain method] based on proposer_address hash
