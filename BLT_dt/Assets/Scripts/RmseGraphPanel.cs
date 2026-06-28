@@ -93,7 +93,7 @@ public class RmseGraphPanel : MonoBehaviour
             // only when no live value is available.
             float rmse = (monitorPanel != null && monitorPanel.rmseNs > 0f)
                 ? monitorPanel.rmseNs
-                : (rmseSource != null && rmseSource.Loaded
+                : (rmseSource != null && rmseSource.Available
                     ? rmseSource.CurrentRmseNs
                     : RmseWave(Time.time));
             _buffer[_head] = rmse;

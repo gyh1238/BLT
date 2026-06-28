@@ -98,7 +98,7 @@ public class MonitorPanel : MonoBehaviour
         // RMSE comes from the BLT_simul simulation curve (paper Fig.5a), replayed
         // by SimulationRmseSource — independent of the chain. Fall back to the
         // local fluctuation formula only when the simulation data is unavailable.
-        if (rmseSource != null && rmseSource.Loaded)
+        if (rmseSource != null && rmseSource.Available)
             rmseNs = rmseSource.CurrentRmseNs;
         else
             rmseNs = 8.8f

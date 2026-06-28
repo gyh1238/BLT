@@ -6,67 +6,120 @@ using UnityEngine;
 using UnityEngine.Networking;
 
 /// <summary>
-/// Plays back the BLT-SAND network RMSE produced by the offline BLT_simul
-/// synchronization-accuracy simulation (paper Fig. 5a, BLT-SAND curve).
+/// Supplies the DT's BLT-SAND network RMSE from the BLT_simul simulation —
+/// independent of the chain — with two sources, preferred in this order:
 ///
-/// The simulation cannot run inside Unity (heavy Python: 16 runs × 60000 ticks ×
-/// 500 satellites), so its committed output curve is exported to
-/// StreamingAssets/blt_rmse_timeseries.txt and replayed here in real time. The
-/// data is the genuine steady-state segment (2 cluster cycles of 6 s) with the
-/// exact paper transform already applied (bc·UNIT_SCALE, EMA span=1250 + centered
-/// window), so the DT shows the real simulated 6 s cluster-sync sawtooth instead
-/// of a fabricated waveform. This is intentionally independent of the chain — the
-/// RMSE comes from the simulation, not from x/blt.
+///   1. LIVE  : poll the real-time RMSE server (BLT_simul/rmse_server.py) over
+///              HTTP. The server steps the actual BLT-SAND sync simulation in
+///              wall-clock time and returns the current network RMSE. This is
+///              the same UnityWebRequest polling pattern the DT already uses for
+///              the Tendermint RPC (:26657).
+///   2. FILE  : when no server is reachable, replay the exported steady-state
+///              curve from StreamingAssets/blt_rmse_timeseries.txt (paper Fig.5a)
+///              as a seamless loop. This is the no-connection fallback.
 ///
-/// File format (see the file header):
-///   '#' comment lines; one carries "sample_interval_sec: &lt;v&gt;"
-///   then one RMSE value (ns) per line.
+/// Mode = Auto (default) uses LIVE when the server answers and automatically
+/// drops to FILE when it stops; Mode = FilePlayback never polls.
 ///
-/// CurrentRmseNs and SampleSecondsAgo() loop the segment with circular linear
-/// interpolation (the exported window's endpoints match to ~0.02 ns, so the loop
-/// seam is invisible).
+/// Resolution order for any reading: LIVE value if connected, else FILE loop,
+/// else 0 (callers then use their own synthetic fallback).
 /// </summary>
 public class SimulationRmseSource : MonoBehaviour
 {
-    [Header("Data")]
+    public enum Mode { Auto, FilePlayback }
+
+    [Header("Source")]
+    public Mode mode = Mode.Auto;
+
+    [Header("Live server (HTTP)")]
+    public string serverUrl     = "http://localhost:8000/rmse";
+    public float  pollInterval  = 0.5f;   // seconds between polls
+    public float  liveTimeoutSec = 2f;    // no OK poll within this → disconnected
+    public float  liveSmoothing = 8f;     // lerp speed toward the latest live value
+
+    [Header("File fallback")]
     public string fileName = "blt_rmse_timeseries.txt";
 
-    [Header("Playback")]
-    [Tooltip("1 = real-time (1 simulated second per real second)")]
-    public float playbackSpeed = 1f;
+    // ── Public state ────────────────────────────────────────────
+    public bool  Loaded    { get; private set; }   // FILE data available
+    public bool  IsLive    { get; private set; }   // LIVE server answering
+    public bool  Available => IsLive || Loaded;
+    public int   LiveTick  { get; private set; }
+    public float CurrentRmseNs => IsLive ? _displayLive : SampleSecondsAgo(0f);
 
-    public bool  Loaded        { get; private set; }
-    public float CurrentRmseNs => SampleSecondsAgo(0f);
-
+    // ── File playback ───────────────────────────────────────────
     private float[] _vals;
-    private float   _intervalSec = 0.05f;  // overwritten from header
+    private float   _intervalSec = 0.05f;
     private float   _durationSec;
 
-    void Awake() => StartCoroutine(Load());
+    // ── Live polling ────────────────────────────────────────────
+    private float _liveRmse;        // latest raw value from server
+    private float _displayLive;     // smoothed value actually shown
+    private float _lastLiveOkTime = -999f;
 
-    IEnumerator Load()
+    [System.Serializable] class RmseMsg { public float rmse_ns; public long tick; }
+
+    void Awake()
     {
-        string path = Path.Combine(Application.streamingAssetsPath, fileName);
-        string text = null;
+        LoadFile();
+        if (mode == Mode.Auto)
+            StartCoroutine(PollLive());
+    }
 
-        // On most platforms StreamingAssets is a plain path; on Android it lives
-        // inside the APK and must be read via UnityWebRequest. Handle both.
-        if (path.Contains("://"))
+    void Update()
+    {
+        if (IsLive)
+            _displayLive = Mathf.Lerp(_displayLive, _liveRmse,
+                                      Time.deltaTime * liveSmoothing);
+    }
+
+    // ── LIVE: poll the real-time RMSE server ────────────────────
+    IEnumerator PollLive()
+    {
+        while (true)
         {
-            using var req = UnityWebRequest.Get(path);
-            yield return req.SendWebRequest();
-            if (req.result == UnityWebRequest.Result.Success)
-                text = req.downloadHandler.text;
+            using (var req = UnityWebRequest.Get(serverUrl))
+            {
+                req.timeout = 2;
+                yield return req.SendWebRequest();
+
+                if (req.result == UnityWebRequest.Result.Success)
+                {
+                    RmseMsg msg = null;
+                    try { msg = JsonUtility.FromJson<RmseMsg>(req.downloadHandler.text); }
+                    catch { msg = null; }
+
+                    if (msg != null && msg.rmse_ns > 0f)
+                    {
+                        _liveRmse = msg.rmse_ns;
+                        LiveTick  = (int)msg.tick;
+                        if (!IsLive) _displayLive = _liveRmse;  // snap on (re)connect
+                        _lastLiveOkTime = Time.time;
+                        IsLive = true;
+                    }
+                }
+            }
+
+            if (IsLive && Time.time - _lastLiveOkTime > liveTimeoutSec)
+                IsLive = false;   // server went away → fall back to FILE
+
+            yield return new WaitForSeconds(pollInterval);
         }
-        else if (File.Exists(path))
-        {
-            text = File.ReadAllText(path);
-        }
+    }
+
+    // ── FILE: load the exported playback curve ──────────────────
+    void LoadFile()
+    {
+        // Desktop (Windows/Mac/Linux): StreamingAssets is a plain directory, so a
+        // direct file read is enough. (Android would need UnityWebRequest because
+        // StreamingAssets lives inside the APK — not supported here.)
+        string path = Path.Combine(Application.streamingAssetsPath, fileName);
+        string text = File.Exists(path) ? File.ReadAllText(path) : null;
 
         if (string.IsNullOrEmpty(text))
         {
-            Debug.LogWarning($"[SimulationRmseSource] {fileName} not found → RMSE source inactive");
-            yield break;
+            Debug.LogWarning($"[SimulationRmseSource] {fileName} not found → FILE fallback inactive");
+            return;
         }
 
         var vals = new List<float>();
@@ -88,27 +141,27 @@ public class SimulationRmseSource : MonoBehaviour
 
         if (vals.Count < 2)
         {
-            Debug.LogWarning("[SimulationRmseSource] not enough samples → inactive");
-            yield break;
+            Debug.LogWarning("[SimulationRmseSource] not enough samples → FILE fallback inactive");
+            return;
         }
 
         _vals        = vals.ToArray();
         _durationSec = _vals.Length * _intervalSec;
         Loaded       = true;
-        Debug.Log($"[SimulationRmseSource] loaded {_vals.Length} samples, " +
+        Debug.Log($"[SimulationRmseSource] FILE loaded {_vals.Length} samples, " +
                   $"{_durationSec:F1}s loop @ {_intervalSec * 1000f:F0}ms");
     }
 
     /// <summary>
-    /// RMSE (ns) at <paramref name="secondsAgo"/> before now. 0 = current value,
-    /// positive = into the past (used to pre-fill the graph history). Loops the
-    /// segment with circular linear interpolation.
+    /// RMSE (ns) at <paramref name="secondsAgo"/> before now, used to pre-fill the
+    /// graph history. Always samples the FILE loop (the live server has no past);
+    /// returns the live value if no file is loaded, else 0.
     /// </summary>
     public float SampleSecondsAgo(float secondsAgo)
     {
-        if (!Loaded) return 0f;
-        float t = Time.time * playbackSpeed - secondsAgo;
-        return SampleAtPhase(t);
+        if (Loaded)
+            return SampleAtPhase(Time.time - secondsAgo);
+        return IsLive ? _displayLive : 0f;
     }
 
     private float SampleAtPhase(float tSec)
