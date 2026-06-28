@@ -13,7 +13,8 @@ public class MonitorPanel : MonoBehaviour
 {
     [Header("References")]
     public MapManager mapManager;   // Used to query cluster member count
-    public BltChainPoller bltPoller; // x/blt chain data (RMSE, cluster count)
+    public BltChainPoller bltPoller; // x/blt chain data (cluster count, sync state)
+    public SimulationRmseSource rmseSource; // BLT_simul RMSE curve (Fig.5a playback)
 
     [Header("RPC Settings")]
     public string rpcEndpoint  = "http://localhost:26657";
@@ -94,20 +95,20 @@ public class MonitorPanel : MonoBehaviour
             _lastHeight = h;
         }
 
-        // RMSE: read the chain-generated network RMSE when connected; otherwise
-        // fall back to the local fluctuation formula (shared with RmseGraphPanel).
-        if (bltPoller != null && bltPoller.Connected)
-        {
-            rmseNs = bltPoller.NetworkRmseNs;
-            if (bltPoller.ClusterCount > 0) activeClusters = bltPoller.ClusterCount;
-        }
+        // RMSE comes from the BLT_simul simulation curve (paper Fig.5a), replayed
+        // by SimulationRmseSource — independent of the chain. Fall back to the
+        // local fluctuation formula only when the simulation data is unavailable.
+        if (rmseSource != null && rmseSource.Loaded)
+            rmseNs = rmseSource.CurrentRmseNs;
         else
-        {
             rmseNs = 8.8f
                 + Mathf.Sin(Time.time * 0.29f) * 0.30f
                 + Mathf.Sin(Time.time * 0.71f) * 0.14f
                 + Mathf.Sin(Time.time * 1.37f) * 0.06f;
-        }
+
+        // Cluster count is still a chain (x/blt) quantity when connected.
+        if (bltPoller != null && bltPoller.Connected && bltPoller.ClusterCount > 0)
+            activeClusters = bltPoller.ClusterCount;
     }
 
     void UpdateUI()

@@ -17,6 +17,7 @@ public class RmseGraphPanel : MonoBehaviour
 {
     [Header("References")]
     public MonitorPanel monitorPanel;
+    public SimulationRmseSource rmseSource; // BLT_simul RMSE curve (Fig.5a playback)
     public RawImage     graphImage;      // Cell_RMSE > GraphImage
 
     [Header("Graph Settings")]
@@ -51,12 +52,15 @@ public class RmseGraphPanel : MonoBehaviour
     {
         _buffer = new float[bufferSize];
 
-        // pre-fill: same formula as real-time, based on past time
+        // pre-fill the 60 s history. Prefer the BLT_simul curve (sampled into the
+        // past so the visible history is the real simulated sawtooth); fall back
+        // to the synthetic wave when the simulation data is unavailable.
         float interval = updateInterval;
+        bool  useSim   = rmseSource != null && rmseSource.Loaded;
         for (int i = 0; i < bufferSize; i++)
         {
             float t = (i - bufferSize) * interval; // negative = past
-            _buffer[i] = RmseWave(t);
+            _buffer[i] = useSim ? rmseSource.SampleSecondsAgo(-t) : RmseWave(t);
         }
         _head  = 0;
         _count = bufferSize;
@@ -84,11 +88,14 @@ public class RmseGraphPanel : MonoBehaviour
     {
         while (true)
         {
-            // Prefer the real network RMSE (chain-driven via MonitorPanel); fall
-            // back to the synthetic wave only when no live value is available.
+            // Live sample from the BLT_simul curve (via MonitorPanel, which now
+            // sources RMSE from the simulation); fall back to the synthetic wave
+            // only when no live value is available.
             float rmse = (monitorPanel != null && monitorPanel.rmseNs > 0f)
                 ? monitorPanel.rmseNs
-                : RmseWave(Time.time);
+                : (rmseSource != null && rmseSource.Loaded
+                    ? rmseSource.CurrentRmseNs
+                    : RmseWave(Time.time));
             _buffer[_head] = rmse;
             _head = (_head + 1) % bufferSize;
             if (_count < bufferSize) _count++;
