@@ -82,9 +82,11 @@ public class MissionStatusBar : MonoBehaviour
     // ── Block arrival tracking (for dot status) ───────────────────────────
     void TrackBlockArrival()
     {
-        // When the blockchain is not connected, generate a virtual block every simBlockInterval
+        // When the blockchain is not connected, generate a virtual block every
+        // simBlockInterval — but only if fallback display is enabled. With it off
+        // the bar shows placeholders instead of a fabricated block ticker.
         _simBlockTimer += updateInterval;
-        if (GetLatestHeight() <= 0 && _simBlockTimer >= simBlockInterval)
+        if (DtDisplayConfig.ShowFallback && GetLatestHeight() <= 0 && _simBlockTimer >= simBlockInterval)
         {
             _simBlockTimer = 0f;
             _simBlockHeight++;
@@ -143,13 +145,18 @@ public class MissionStatusBar : MonoBehaviour
     // ── Build Line 2 ──────────────────────────────────────────
     string BuildLine2()
     {
+        // Chain-derived fields show a placeholder when the chain is offline and
+        // fallback display is OFF. Faulty count + dots are local, always shown.
+        bool   show = GetLatestHeight() > 0 || DtDisplayConfig.ShowFallback;
+        string d    = DtDisplayConfig.Placeholder;
+
         string dots     = BuildDots();
-        string blk      = $"BLK <color=#{C_ACCENT}>#{GetLatestHeight()}</color>";
-        string rnd      = $"RND <color=#{C_ACCENT}>#{GetLatestHeight() + 1}</color>";
-        string epoch    = BuildEpoch();  // BLK TIME
-        string proposer = BuildProposer();
-        string sync     = BuildSync();
-        string clusters = BuildClusters();
+        string blk      = show ? $"BLK <color=#{C_ACCENT}>#{GetLatestHeight()}</color>"     : $"BLK <color=#{C_DIM}>{d}</color>";
+        string rnd      = show ? $"RND <color=#{C_ACCENT}>#{GetLatestHeight() + 1}</color>" : $"RND <color=#{C_DIM}>{d}</color>";
+        string epoch    = show ? BuildEpoch()                                                : $"BLK TIME  <color=#{C_DIM}>{d}</color>";
+        string proposer = show ? BuildProposer()                                             : $"PROP  <color=#{C_DIM}>{d}</color>";
+        string sync     = show ? BuildSync()                                                 : $"SYNC  <color=#{C_DIM}>OFFLINE</color>";
+        string clusters = show ? BuildClusters()                                             : $"CLUSTERS  <color=#{C_DIM}>{d}</color>";
         string faulty   = BuildFaulty();
 
         string sep = $"<color=#{C_DIM}>  │  </color>";

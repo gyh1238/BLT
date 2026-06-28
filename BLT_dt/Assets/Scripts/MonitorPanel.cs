@@ -101,15 +101,19 @@ public class MonitorPanel : MonoBehaviour
         }
 
         // RMSE comes from the BLT_simul simulation curve (paper Fig.5a), replayed
-        // by SimulationRmseSource — independent of the chain. Fall back to the
-        // local fluctuation formula only when the simulation data is unavailable.
+        // by SimulationRmseSource — independent of the chain. When the source is
+        // offline, fall back to the local fluctuation formula only if fallback
+        // display is enabled; otherwise leave rmseNs negative so UpdateUI shows
+        // the placeholder.
         if (rmseSource != null && rmseSource.Available)
             rmseNs = rmseSource.CurrentRmseNs;
-        else
+        else if (DtDisplayConfig.ShowFallback)
             rmseNs = 8.8f
                 + Mathf.Sin(Time.time * 0.29f) * 0.30f
                 + Mathf.Sin(Time.time * 0.71f) * 0.14f
                 + Mathf.Sin(Time.time * 1.37f) * 0.06f;
+        else
+            rmseNs = -1f;   // sentinel → placeholder
 
         // Cluster count is still a chain (x/blt) quantity when connected.
         if (bltPoller != null && bltPoller.Connected && bltPoller.ClusterCount > 0)
@@ -126,18 +130,31 @@ public class MonitorPanel : MonoBehaviour
         var white  = Color.white;
         var dim    = new Color(0.48f, 0.78f, 0.89f);
 
+        // Source connectivity → with fallback OFF, an offline source shows "—".
+        bool   chainUp = bltPoller   != null && bltPoller.Connected;
+        bool   rmseUp  = rmseSource  != null && rmseSource.Available;
+        string dash    = DtDisplayConfig.Placeholder;
+
         // ── Fixed 3: always shown (regardless of cluster) ─────────────────
-        // 0: Network RMSE
-        Set(0, rmseNs.ToString("F1") + " ns",
-            rmseNs < 10f ? green : orange);
-        // 4: Block Interval
-        Set(4, _blockInterval.ToString("F1") + " s", white);
+        // 0: Network RMSE — rmseNs < 0 is the sentinel for "offline, fallback off".
+        if (rmseUp || rmseNs >= 0f)
+            Set(0, rmseNs.ToString("F1") + " ns", rmseNs < 10f ? green : orange);
+        else
+            Set(0, dash, dim);
+        // 4: Block Interval (chain-derived)
+        if (chainUp || DtDisplayConfig.ShowFallback)
+            Set(4, _blockInterval.ToString("F1") + " s", white);
+        else
+            Set(4, dash, dim);
         // 5: Local Cycle — half the chain block interval. Hook: when the sim
         // server drives it (rmseSource.LocalCycleSec > 0) that value takes over.
         localCycleSec = (rmseSource != null && rmseSource.LocalCycleSec > 0f)
             ? rmseSource.LocalCycleSec
             : _blockInterval * 0.5f;
-        Set(5, localCycleSec.ToString("F1") + " s", white);
+        if (chainUp || rmseUp || DtDisplayConfig.ShowFallback)
+            Set(5, localCycleSec.ToString("F1") + " s", white);
+        else
+            Set(5, dash, dim);
 
         // ── Variable 3: switch between ALL / cluster mode ───────────────────────
         if (_selectedCluster >= 0)
@@ -161,13 +178,18 @@ public class MonitorPanel : MonoBehaviour
         }
         else
         {
-            // 1: Global Sync
+            // 1: Global Sync (chain-derived)
             SetLabel(1, "Global Sync");
-            Set(1, _synced ? "OK" : "Catch up",
-                _synced ? green : orange);
-            // 2: Active Clusters
+            if (chainUp || DtDisplayConfig.ShowFallback)
+                Set(1, _synced ? "OK" : "Catch up", _synced ? green : orange);
+            else
+                Set(1, dash, dim);
+            // 2: Active Clusters (chain-derived)
             SetLabel(2, "Active Clusters");
-            Set(2, activeClusters + " / 12", white);
+            if (chainUp || DtDisplayConfig.ShowFallback)
+                Set(2, activeClusters + " / 12", white);
+            else
+                Set(2, dash, dim);
             // 3: Faulty Nodes
             SetLabel(3, "Faulty Nodes");
             Set(3, faultyNodes.ToString(),

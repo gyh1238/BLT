@@ -60,7 +60,9 @@ public class RmseGraphPanel : MonoBehaviour
         for (int i = 0; i < bufferSize; i++)
         {
             float t = (i - bufferSize) * interval; // negative = past
-            _buffer[i] = useSim ? rmseSource.SampleSecondsAgo(-t) : RmseWave(t);
+            _buffer[i] = useSim
+                ? rmseSource.SampleSecondsAgo(-t)
+                : (DtDisplayConfig.ShowFallback ? RmseWave(t) : 0f);
         }
         _head  = 0;
         _count = bufferSize;
@@ -89,13 +91,15 @@ public class RmseGraphPanel : MonoBehaviour
         while (true)
         {
             // Live sample from the BLT_simul curve (via MonitorPanel, which now
-            // sources RMSE from the simulation); fall back to the synthetic wave
-            // only when no live value is available.
-            float rmse = (monitorPanel != null && monitorPanel.rmseNs > 0f)
-                ? monitorPanel.rmseNs
+            // sources RMSE from the simulation). MonitorPanel encodes a negative
+            // sentinel when the source is offline and fallback display is OFF, so
+            // here we flatline at 0 instead of drawing a synthetic wave.
+            float mv = monitorPanel != null ? monitorPanel.rmseNs : -1f;
+            float rmse = mv >= 0f
+                ? mv
                 : (rmseSource != null && rmseSource.Available
                     ? rmseSource.CurrentRmseNs
-                    : RmseWave(Time.time));
+                    : (DtDisplayConfig.ShowFallback ? RmseWave(Time.time) : 0f));
             _buffer[_head] = rmse;
             _head = (_head + 1) % bufferSize;
             if (_count < bufferSize) _count++;
