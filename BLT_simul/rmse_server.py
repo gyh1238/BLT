@@ -56,8 +56,16 @@ sim.POSITION_UPDATE_CYCLE = CLUSTER_CYCLE
 
 # Shared state published by the stepper thread, read by the HTTP handler.
 # Single dict-item assignments are atomic under the GIL; no lock needed.
+#
+# local_cycle_sec is the hook for driving the DT's "Local Cycle" cell from the
+# simulation. The sim's intra-cluster/neighbour sync cadence is NEIGHBOR_CYCLE
+# ticks (= NEIGHBOR_CYCLE * TIME_TICK seconds). It is published as 0.0 by default
+# so the DT derives the cell from the chain (half the block interval); set it to
+# a positive value here to let the simulation drive that cell instead.
+LOCAL_CYCLE_SEC = 0.0   # e.g. NEIGHBOR_CYCLE * TIME_TICK == 0.2 to drive from sim
 STATE = {"rmse_ns": 0.0, "tick": 0, "sats": NUM_SATS,
-         "faulty": NUM_FAULTY, "clusters": K}
+         "faulty": NUM_FAULTY, "clusters": K,
+         "local_cycle_sec": LOCAL_CYCLE_SEC}
 
 
 class LiveSim:

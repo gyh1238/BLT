@@ -24,7 +24,12 @@ public class MonitorPanel : MonoBehaviour
     public TextMeshProUGUI[] valueTexts;
     public TextMeshProUGUI[] labelTexts;  // Label TMP (optional)
 
-    [Header("Simulation values (temporary)")]
+    // Live-driven values (inspector entries are only fallback defaults):
+    //   rmseNs         ← BLT_simul (SimulationRmseSource); 8.8 = offline fallback
+    //   activeClusters ← chain ClusterCount when connected
+    //   faultyNodes    ← FaultySatelliteManager (intentionally local)
+    //   localCycleSec  ← sim hook (rmseSource.LocalCycleSec) else chain blockInterval/2
+    [Header("Display values (fallback defaults)")]
     public float rmseNs         = 8.8f;
     public int   activeClusters = 12;
     public int   faultyNodes    = 3;
@@ -127,7 +132,11 @@ public class MonitorPanel : MonoBehaviour
             rmseNs < 10f ? green : orange);
         // 4: Block Interval
         Set(4, _blockInterval.ToString("F1") + " s", white);
-        // 5: Local Cycle
+        // 5: Local Cycle — half the chain block interval. Hook: when the sim
+        // server drives it (rmseSource.LocalCycleSec > 0) that value takes over.
+        localCycleSec = (rmseSource != null && rmseSource.LocalCycleSec > 0f)
+            ? rmseSource.LocalCycleSec
+            : _blockInterval * 0.5f;
         Set(5, localCycleSec.ToString("F1") + " s", white);
 
         // ── Variable 3: switch between ALL / cluster mode ───────────────────────

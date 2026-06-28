@@ -32,6 +32,9 @@ public class MissionStatusBar : MonoBehaviour
     public float metStartOffsetSec   = 0f;    // Auto-set from blockchain height*6s
     public float secPerBlock         = 6f;    // Time per block (seconds)
     bool         _metOffsetSet       = false;
+    [Tooltip("Hook: when true, BLK TIME shows the chain's real block timestamp " +
+             "(BlockchainPoller.LatestBlockTime) instead of the simulated mission clock.")]
+    public bool  useChainBlockTime   = false;
 
     // ── Colors (hex for TMP rich text) ──────────────────────────
     const string C_ACCENT  = "00b4ff";  // Cyan — accent
@@ -169,8 +172,15 @@ public class MissionStatusBar : MonoBehaviour
 
     string BuildEpoch()
     {
-        // Display a fixed time that is only updated when a block arrives
-        return $"BLK TIME  <color=#{C_ACCENT}>{_cachedBlkTime}</color>";
+        // Default: the simulated mission time (kept in sync with the UTC line and
+        // day/night shading). Hook: flip useChainBlockTime to show the chain's
+        // real block timestamp (BlockchainPoller.LatestBlockTime) instead.
+        string t = _cachedBlkTime;
+        if (useChainBlockTime && blockchainPoller != null
+            && !string.IsNullOrEmpty(blockchainPoller.LatestBlockTime)
+            && blockchainPoller.LatestBlockTime != "--:--:--")
+            t = blockchainPoller.LatestBlockTime;
+        return $"BLK TIME  <color=#{C_ACCENT}>{t}</color>";
     }
 
     // ── PROPOSER (satellite that proposed the latest block) ───────────────────────

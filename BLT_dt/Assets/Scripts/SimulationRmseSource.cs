@@ -47,6 +47,11 @@ public class SimulationRmseSource : MonoBehaviour
     public int   LiveTick  { get; private set; }
     public float CurrentRmseNs => IsLive ? _displayLive : SampleSecondsAgo(0f);
 
+    // Hook for sim-driven "Local Cycle": the live server may publish a local sync
+    // cadence (local_cycle_sec). 0 = the simulation is not driving it, so the DT
+    // derives the cell from the chain instead (half the block interval).
+    public float LocalCycleSec { get; private set; }
+
     // ── File playback ───────────────────────────────────────────
     private float[] _vals;
     private float   _intervalSec = 0.05f;
@@ -57,7 +62,7 @@ public class SimulationRmseSource : MonoBehaviour
     private float _displayLive;     // smoothed value actually shown
     private float _lastLiveOkTime = -999f;
 
-    [System.Serializable] class RmseMsg { public float rmse_ns; public long tick; }
+    [System.Serializable] class RmseMsg { public float rmse_ns; public long tick; public float local_cycle_sec; }
 
     void Awake()
     {
@@ -93,6 +98,7 @@ public class SimulationRmseSource : MonoBehaviour
                     {
                         _liveRmse = msg.rmse_ns;
                         LiveTick  = (int)msg.tick;
+                        LocalCycleSec = msg.local_cycle_sec;    // sim-driven hook (0 = dormant)
                         if (!IsLive) _displayLive = _liveRmse;  // snap on (re)connect
                         _lastLiveOkTime = Time.time;
                         IsLive = true;
