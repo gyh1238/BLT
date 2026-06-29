@@ -22,7 +22,7 @@ func TestGenesisState_Validate(t *testing.T) {
 		{
 			desc: "explicit valid params",
 			genState: &types.GenesisState{
-				Params:           types.NewParams(12, 3500, 16384),
+				Params:           types.NewParams(12, 3500, 16384, 683, 6700),
 				InitialDelegates: types.BltDelegateSet{},
 			},
 			valid: true,
@@ -30,14 +30,14 @@ func TestGenesisState_Validate(t *testing.T) {
 		{
 			desc: "zero cluster_count rejected",
 			genState: &types.GenesisState{
-				Params: types.NewParams(0, 3500, 16384),
+				Params: types.NewParams(0, 3500, 16384, 683, 6700),
 			},
 			valid: false,
 		},
 		{
 			desc: "initial_delegates length must match cluster_count when non-empty",
 			genState: &types.GenesisState{
-				Params: types.NewParams(2, 3500, 16384),
+				Params: types.NewParams(2, 3500, 16384, 683, 6700),
 				InitialDelegates: types.BltDelegateSet{
 					Delegates: []types.BltDelegate{
 						{ClusterId: 0, HeadId: 100, ValidatorAddress: "cosmosvaloper1xxx"},
@@ -49,7 +49,7 @@ func TestGenesisState_Validate(t *testing.T) {
 		{
 			desc: "duplicate cluster_id rejected",
 			genState: &types.GenesisState{
-				Params: types.NewParams(2, 3500, 16384),
+				Params: types.NewParams(2, 3500, 16384, 683, 6700),
 				InitialDelegates: types.BltDelegateSet{
 					Delegates: []types.BltDelegate{
 						{ClusterId: 0, HeadId: 100, ValidatorAddress: "cosmosvaloper1a"},

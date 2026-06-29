@@ -13,6 +13,10 @@ const (
 	DefaultClusterCount             uint32 = 12
 	DefaultEpochLengthMs            uint32 = 3500
 	DefaultMaxMemberRecordsPerBlock uint64 = 16384
+
+	// Demo self-gen (EndBlocker) defaults — previously hardcoded in abci.go.
+	DefaultMembersPerCluster uint32 = 683  // README: ~683 per cluster
+	DefaultNominalRmseMilliNs uint32 = 6700 // README nominal 6.7 ns
 )
 
 // ParamKeyTable is retained for legacy x/params interop.
@@ -21,17 +25,21 @@ func ParamKeyTable() paramtypes.KeyTable {
 }
 
 // NewParams creates a new Params instance.
-func NewParams(clusterCount uint32, epochLengthMs uint32, maxMemberRecords uint64) Params {
+func NewParams(clusterCount uint32, epochLengthMs uint32, maxMemberRecords uint64,
+	membersPerCluster uint32, nominalRmseMilliNs uint32) Params {
 	return Params{
-		ClusterCount:                clusterCount,
-		EpochLengthMs:               epochLengthMs,
-		MaxMemberRecordsPerBlock:    maxMemberRecords,
+		ClusterCount:             clusterCount,
+		EpochLengthMs:            epochLengthMs,
+		MaxMemberRecordsPerBlock: maxMemberRecords,
+		MembersPerCluster:        membersPerCluster,
+		NominalRmseMilliNs:       nominalRmseMilliNs,
 	}
 }
 
 // DefaultParams returns the default Params per spec §4.5.
 func DefaultParams() Params {
-	return NewParams(DefaultClusterCount, DefaultEpochLengthMs, DefaultMaxMemberRecordsPerBlock)
+	return NewParams(DefaultClusterCount, DefaultEpochLengthMs, DefaultMaxMemberRecordsPerBlock,
+		DefaultMembersPerCluster, DefaultNominalRmseMilliNs)
 }
 
 // ParamSetPairs returns an empty pair set; the module persists params via
@@ -53,6 +61,12 @@ func (p Params) Validate() error {
 	}
 	if p.MaxMemberRecordsPerBlock == 0 {
 		return fmt.Errorf("max_member_records_per_block must be > 0")
+	}
+	if p.MembersPerCluster == 0 {
+		return fmt.Errorf("members_per_cluster must be > 0")
+	}
+	if p.NominalRmseMilliNs == 0 {
+		return fmt.Errorf("nominal_rmse_milli_ns must be > 0")
 	}
 	return nil
 }

@@ -41,21 +41,17 @@ const (
 	// head_id in [0,29999] yields SAT-40000..SAT-69999.
 	satIDBase = 40000
 
-	// membersPerCluster is the nominal member count per cluster (README: ~683
-	// per cluster, 12 clusters ≈ 8192 satellites).
-	membersPerCluster = 683
-
 	// refEpochUnixNano anchors global_ref_time so the q01ns (0.1 ns) value stays
 	// well inside uint64 range. 2025-01-01T00:00:00Z.
 	refEpochUnixNano int64 = 1735689600_000000000
 
 	// knuth is the multiplicative hashing constant shared with the DT.
 	knuth uint64 = 2654435761
-
-	// nominalRmseMilliNs is the baseline network RMSE in milli-nanoseconds
-	// (6.7 ns; README nominal).
-	nominalRmseMilliNs int64 = 6700
 )
+
+// Note: the nominal RMSE (milli-ns) and members-per-cluster were previously
+// hardcoded here; they are now genesis-configurable module params
+// (Params.NominalRmseMilliNs / Params.MembersPerCluster, defaults 6700 / 683).
 
 // GenerateEpoch synthesizes, persists and announces one sync epoch for the
 // current block. Safe to call every EndBlock; it is a pure function of the
@@ -86,8 +82,10 @@ func (k Keeper) GenerateEpoch(ctx sdk.Context) error {
 	proposerHead := set.Delegates[proposerIdx].HeadId
 
 	// Per-block body, seeded purely by height → identical on every validator.
+	// Demo tuning (nominal RMSE, members/cluster) comes from genesis params.
 	rng := rand.New(rand.NewSource(deriveSeed(height)))
-	body := buildEpochBody(rng, set, ctx.BlockTime().UnixNano(), height)
+	body := buildEpochBody(rng, set, ctx.BlockTime().UnixNano(), height,
+		int64(params.NominalRmseMilliNs), int(params.MembersPerCluster))
 
 	snap := types.BltEpochSnapshot{
 		EpochId:       uint32(height),
@@ -138,12 +136,13 @@ func buildDelegateSet(clusterCount uint32) types.BltDelegateSet {
 // member table is left empty on the self-gen path (full-record policy applies
 // only to externally-submitted epochs); global.member_count still reports the
 // aggregate swarm size for display.
-func buildEpochBody(rng *rand.Rand, set types.BltDelegateSet, blockUnixNano, height int64) types.BltBlockBody {
+func buildEpochBody(rng *rand.Rand, set types.BltDelegateSet, blockUnixNano, height int64,
+	nominalRmseMilliNs int64, membersPerCluster int) types.BltBlockBody {
 	clusterCount := uint32(len(set.Delegates))
 
 	// Network RMSE target wobbles slowly in the ~5–8 ns band using two integer
 	// triangle waves of incommensurate periods — smooth and non-repeating, with
-	// no floating point.
+	// no floating point. The baseline comes from genesis params.
 	targetMilliNs := nominalRmseMilliNs +
 		triangle(height, 50, 1000) +
 		triangle(height, 130, 400)
@@ -157,8 +156,16 @@ func buildEpochBody(rng *rand.Rand, set types.BltDelegateSet, blockUnixNano, hei
 		q01 := clusterMilliNs / 100                 // ns*10 (0.1 ns units)
 		varQ := uint32(q01 * q01)                   // (0.1 ns)^2
 
-		members := uint32(membersPerCluster + rng.Intn(41) - 20) // 663..703
-		inliers := members - uint32(rng.Intn(6))                 // a few outliers
+		mm := membersPerCluster + rng.Intn(41) - 20 // e.g. 663..703 for 683
+		if mm < 1 {
+			mm = 1 // guard against a misconfigured (tiny) members_per_cluster
+		}
+		members := uint32(mm)
+		out := uint32(rng.Intn(6)) // a few outliers
+		if out > members {
+			out = members
+		}
+		inliers := members - out
 		totalMembers += members
 
 		clusterTable = append(clusterTable, types.BltClusterSummary{

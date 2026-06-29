@@ -29,6 +29,8 @@ type Params struct {
 	ClusterCount             uint32 `protobuf:"varint,1,opt,name=cluster_count,json=clusterCount,proto3" json:"cluster_count,omitempty"`
 	EpochLengthMs            uint32 `protobuf:"varint,2,opt,name=epoch_length_ms,json=epochLengthMs,proto3" json:"epoch_length_ms,omitempty"`
 	MaxMemberRecordsPerBlock uint64 `protobuf:"varint,3,opt,name=max_member_records_per_block,json=maxMemberRecordsPerBlock,proto3" json:"max_member_records_per_block,omitempty"`
+	MembersPerCluster        uint32 `protobuf:"varint,4,opt,name=members_per_cluster,json=membersPerCluster,proto3" json:"members_per_cluster,omitempty"`
+	NominalRmseMilliNs       uint32 `protobuf:"varint,5,opt,name=nominal_rmse_milli_ns,json=nominalRmseMilliNs,proto3" json:"nominal_rmse_milli_ns,omitempty"`
 }
 
 func (m *Params) Reset()         { *m = Params{} }
@@ -81,6 +83,20 @@ func (m *Params) GetEpochLengthMs() uint32 {
 func (m *Params) GetMaxMemberRecordsPerBlock() uint64 {
 	if m != nil {
 		return m.MaxMemberRecordsPerBlock
+	}
+	return 0
+}
+
+func (m *Params) GetMembersPerCluster() uint32 {
+	if m != nil {
+		return m.MembersPerCluster
+	}
+	return 0
+}
+
+func (m *Params) GetNominalRmseMilliNs() uint32 {
+	if m != nil {
+		return m.NominalRmseMilliNs
 	}
 	return 0
 }
@@ -140,6 +156,12 @@ func (this *Params) Equal(that interface{}) bool {
 	if this.MaxMemberRecordsPerBlock != that1.MaxMemberRecordsPerBlock {
 		return false
 	}
+	if this.MembersPerCluster != that1.MembersPerCluster {
+		return false
+	}
+	if this.NominalRmseMilliNs != that1.NominalRmseMilliNs {
+		return false
+	}
 	return true
 }
 func (m *Params) Marshal() (dAtA []byte, err error) {
@@ -162,6 +184,16 @@ func (m *Params) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.NominalRmseMilliNs != 0 {
+		i = encodeVarintParams(dAtA, i, uint64(m.NominalRmseMilliNs))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.MembersPerCluster != 0 {
+		i = encodeVarintParams(dAtA, i, uint64(m.MembersPerCluster))
+		i--
+		dAtA[i] = 0x20
+	}
 	if m.MaxMemberRecordsPerBlock != 0 {
 		i = encodeVarintParams(dAtA, i, uint64(m.MaxMemberRecordsPerBlock))
 		i--
@@ -205,6 +237,12 @@ func (m *Params) Size() (n int) {
 	}
 	if m.MaxMemberRecordsPerBlock != 0 {
 		n += 1 + sovParams(uint64(m.MaxMemberRecordsPerBlock))
+	}
+	if m.MembersPerCluster != 0 {
+		n += 1 + sovParams(uint64(m.MembersPerCluster))
+	}
+	if m.NominalRmseMilliNs != 0 {
+		n += 1 + sovParams(uint64(m.NominalRmseMilliNs))
 	}
 	return n
 }
@@ -297,6 +335,44 @@ func (m *Params) Unmarshal(dAtA []byte) error {
 				b := dAtA[iNdEx]
 				iNdEx++
 				m.MaxMemberRecordsPerBlock |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MembersPerCluster", wireType)
+			}
+			m.MembersPerCluster = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowParams
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.MembersPerCluster |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NominalRmseMilliNs", wireType)
+			}
+			m.NominalRmseMilliNs = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowParams
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.NominalRmseMilliNs |= uint32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}

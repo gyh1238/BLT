@@ -46,3 +46,10 @@ genesis:
         min_deposit:
           - denom: "leo"
             amount: "10000000"
+    blt:
+      params:
+        cluster_count: 12
+        epoch_length_ms: 3500
+        max_member_records_per_block: "16384"
+        members_per_cluster: 683
+        nominal_rmse_milli_ns: 6700
