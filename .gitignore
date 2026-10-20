@@ -1,0 +1,40 @@
+# ── Third-party content we may not redistribute ────────
+# Space-Track user agreement; see BLT_simul/data/README.md to fetch your own.
+STARLINK_TLE.txt
+# Unity Asset Store EULA; see "BLT_dt/Assets/EarthRendering Free/README.md".
+# .meta files are Unity-generated GUID mappings and stay tracked, so restoring
+# the package into the same folder relinks the scene automatically.
+BLT_dt/Assets/EarthRendering Free/*
+!BLT_dt/Assets/EarthRendering Free/*.meta
+!BLT_dt/Assets/EarthRendering Free/README.md
+
+# ── Secrets (NEVER commit) ─────────────────────────────
+SLTrack.ini
+*.ini
+.env
+*.key
+*.pem
+
+# ── Outputs ────────────────────────────────────────────
+# Everything under result/ is written by the scripts and reproducible from them.
+result/
+
+# ── Python ─────────────────────────────────────────────
+node_modules/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.idea/
+
+# ── Unity generated/temp (BLT_dt) ──────────────────────
+BLT_dt/Library/
+BLT_dt/Temp/
+BLT_dt/Obj/
+BLT_dt/Build/
+BLT_dt/Builds/
+BLT_dt/Logs/
+BLT_dt/UserSettings/
+
+# Source PDFs are not redistributed; cite them from docs/REFERENCES.md section 8.
+docs/*.pdf

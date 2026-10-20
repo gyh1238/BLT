@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package leochain.blt;
+
+import "amino/amino.proto";
+import "cosmos/msg/v1/msg.proto";
+import "cosmos_proto/cosmos.proto";
+import "gogoproto/gogo.proto";
+import "leochain/blt/params.proto";
+import "leochain/blt/types.proto";
+
+option go_package = "leochain/x/blt/types";
+
+// Msg defines the Msg service.
+service Msg {
+  option (cosmos.msg.v1.service) = true;
+
+  // UpdateParams defines a (governance) operation for updating the module
+  // parameters. The authority defaults to the x/gov module account.
+  rpc UpdateParams    (MsgUpdateParams)    returns (MsgUpdateParamsResponse);
+  rpc CommitSyncBlock (MsgCommitSyncBlock) returns (MsgCommitSyncBlockResponse);
+}
+
+// MsgUpdateParams is the Msg/UpdateParams request type.
+message MsgUpdateParams {
+  option (cosmos.msg.v1.signer) = "authority";
+  option (amino.name)           = "leochain/x/blt/MsgUpdateParams";
+
+  // authority is the address that controls the module (defaults to x/gov unless overwritten).
+  string authority = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // params defines the module parameters to update.
+  //
+  // NOTE: All parameters must be supplied.
+  Params params = 2 [(gogoproto.nullable) = false, (amino.dont_omitempty) = true];
+}
+
+// MsgUpdateParamsResponse defines the response structure for executing a
+// MsgUpdateParams message.
+message MsgUpdateParamsResponse {}
+
+// MsgCommitSyncBlock is the single tx per block submitted by the current
+// proposer (a rotating cluster head). Implements spec §4.3.
+message MsgCommitSyncBlock {
+  option (cosmos.msg.v1.signer) = "proposer";
+
+  string       proposer        = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  BltBlockBody body            = 2 [(gogoproto.nullable) = false];
+  bytes        relay_path_hash = 3; // 32 bytes
+  uint32       epoch_id        = 4; // u8 semantic range
+}
+
+// MsgCommitSyncBlockResponse echoes the accepted global ref time.
+message MsgCommitSyncBlockResponse {
+  uint64 global_ref_time_q01ns = 1;
+}
